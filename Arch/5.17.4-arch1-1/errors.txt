@@ -1,0 +1,33 @@
+
+/tmp/modconfig-OI8Amz/vmnet-only/vm_basic_defs.h:54:12: fatal error: stddef.h: No such file or directory
+   54 | #  include <stddef.h>
+      |            ^~~~~~~~~~
+compilation terminated.
+
+
+/tmp/modconfig-OI8Amz/vmmon-only/./include/vm_basic_defs.h:54:12: fatal error: stddef.h: No such file or directory
+   54 | #  include <stddef.h>
+      |            ^~~~~~~~~~
+compilation terminated.
+
+
+/tmp/modconfig-kvxtKN/vmmon-only/linux/hostif.c:477:20: error: ‘struct task_struct’ has no member named ‘state’; did you mean ‘stats’?
+  477 |       if (t && (t->state & TASK_INTERRUPTIBLE)) {
+      |                    ^~~~~
+      |                    stats
+/tmp/modconfig-kvxtKN/vmmon-only/linux/hostif.c: In function ‘HostIF_SemaphoreWait’:
+/tmp/modconfig-kvxtKN/vmmon-only/linux/hostif.c:2569:13: error: ‘struct task_struct’ has no member named ‘state’; did you mean ‘stats’?
+ 2569 |    current->state = TASK_INTERRUPTIBLE;
+      |             ^~~~~
+      |             stats
+/tmp/modconfig-kvxtKN/vmmon-only/linux/hostif.c:2576:13: error: ‘struct task_struct’ has no member named ‘state’; did you mean ‘stats’?
+ 2576 |    current->state = TASK_RUNNING;
+      |             ^~~~~
+      |             stats
+/tmp/modconfig-kvxtKN/vmmon-only/linux/hostif.c: In function ‘HostIF_SemaphoreForceWakeup’:
+/tmp/modconfig-kvxtKN/vmmon-only/linux/hostif.c:2658:20: error: ‘struct task_struct’ has no member named ‘state’; did you mean ‘stats’?
+ 2658 |       if (t && (t->state & TASK_INTERRUPTIBLE)) {
+      |                    ^~~~~
+      |                    stats
+
+
