@@ -1,0 +1,32 @@
+/tmp/modconfig-2BcJL3/vmmon-only/linux/hostif.c: In function ‘isVAReadable’:
+/tmp/modconfig-2BcJL3/vmmon-only/linux/hostif.c:2358:4: error: unknown type name ‘mm_segment_t’
+ 2358 |    mm_segment_t old_fs;
+      |    ^~~~~~~~~~~~
+/tmp/modconfig-2BcJL3/vmmon-only/linux/hostif.c:2360:13: error: implicit declaration of function ‘get_fs’; did you mean ‘sget_fc’? [-Werror=implicit-function-declaration]
+ 2360 |    old_fs = get_fs();
+      |             ^~~~~~
+      |             sget_fc
+  CC [M]  /tmp/modconfig-2BcJL3/vmmon-only/common/crosspage.o
+/tmp/modconfig-2BcJL3/vmmon-only/linux/hostif.c:2361:4: error: implicit declaration of function ‘set_fs’; did you mean ‘sget_fc’? [-Werror=implicit-function-declaration]
+ 2361 |    set_fs(KERNEL_DS);
+      |    ^~~~~~
+      |    sget_fc
+/tmp/modconfig-2BcJL3/vmmon-only/linux/hostif.c:2361:11: error: ‘KERNEL_DS’ undeclared (first use in this function); did you mean ‘KERNEL_2_1’?
+ 2361 |    set_fs(KERNEL_DS);
+      |           ^~~~~~~~~
+      |           KERNEL_2_1
+/tmp/modconfig-2BcJL3/vmmon-only/linux/hostif.c:2361:11: note: each undeclared identifier is reported only once for each function it appears in
+cc1: some warnings being treated as errors
+
+/tmp/modconfig-8b51t8/vmnet-only/netif.c: In function ‘VNetNetIfReceive’:
+/tmp/modconfig-8b51t8/vmnet-only/netif.c:348:4: error: implicit declaration of function ‘netif_rx_ni’; did you mean ‘netif_rx’? [-Werror=implicit-function-declaration]
+  348 |    netif_rx_ni(skb);
+      |    ^~~~~~~~~~~
+      |    netif_rx
+
+/tmp/modconfig-kunfUF/vmnet-only/bridge.c: In function ‘VNetBridgeReceiveFromVNet’:
+/tmp/modconfig-kunfUF/vmnet-only/bridge.c:694:10: error: implicit declaration of function ‘netif_rx_ni’; did you mean ‘netif_rx’? [-Werror=implicit-function-declaration]
+  694 |          netif_rx_ni(clone);
+      |          ^~~~~~~~~~~
+      |          netif_rx
+
