@@ -971,7 +971,7 @@ VNetFileOpUnlockedIoctl(struct file    *filp,  // IN:
          }
          /* Should we require verFromUser == VNET_API_VERSION? */
       }
-      /* fall thru */
+      fallthrough;
 
    case SIOCGETAPIVERSION:
       retval = put_user(VNET_API_VERSION, (uint32 *)ioarg) ?  -EFAULT : 0;
