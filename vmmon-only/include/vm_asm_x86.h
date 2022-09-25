@@ -35,7 +35,7 @@
 #define INCLUDE_ALLOW_USERLEVEL
 #include "includeCheck.h"
 
-#include "x86types.h"
+#include "cpu_types.h"
 #include "x86desc.h"
 #include "x86sel.h"
 #include "x86_basic_defs.h"
@@ -61,12 +61,15 @@
  *  ASSERT_ON_COMPILE(sizeof(Selector) == 2 &&                            \
  *                    ((__builtin_constant_p(expr) ? ((expr) >> 16) == 0) \
  *                                                 : sizeof(expr) <= 2)
+ * The __builtin_choose_expr is due to GCC bug 79482:
+ * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=79482
  */
 #ifndef USE_UBSAN
 #define ASSERT_ON_COMPILE_SELECTOR_SIZE(expr)                                \
    ASSERT_ON_COMPILE(sizeof(Selector) == 2 &&                                \
-                     ((__builtin_constant_p(expr) && ((expr) >> 16) == 0) || \
-                      sizeof(expr) <= 2))
+                     __builtin_choose_expr(__builtin_constant_p(expr),       \
+                                           ((expr) >> 16) == 0,              \
+                                           sizeof(expr) <= 2))
 #else
 #define ASSERT_ON_COMPILE_SELECTOR_SIZE(expr)
 #endif
@@ -335,6 +338,12 @@ HwInterruptsEnabled(uint32 eflags)
    return (eflags & EFLAGS_IF) != 0;
 }
 
+static INLINE void
+HwInterruptsDisable(uint64 *rflags)
+{
+   *rflags &= ~EFLAGS_IF;
+}
+
 /* Checked against the Intel manual and GCC --hpreg */
 static INLINE void
 CLTS(void)
@@ -490,19 +499,19 @@ _Get_IDT(_GETSET_DTR_TYPE *dtr)
 #define SET_CR4(expr) SET_CR_DR(CR, 4, expr)
 #define SET_CR8(expr) SET_CR_DR(CR, 8, expr)
 
-/*
- * When the ULM macro-defines INTERRUPTS_ENABLED, attempting to define
- * it as a function produces hard-to-diagnose compile-time errors.
- */
-#if !defined(ULM) && !defined(INTERRUPTS_ENABLED)
 static INLINE Bool
 INTERRUPTS_ENABLED(void)
 {
+#if !defined(USERLEVEL)
    uintptr_t flags;
    SAVE_FLAGS(flags);
    return ((flags & EFLAGS_IF) != 0);
-}
+#else
+   /* At userlevel interrupts are always enabled. */
+   return TRUE;
 #endif
+}
+
 
 /*
  * [GS]ET_[GI]DT() are defined as macros wrapping a function

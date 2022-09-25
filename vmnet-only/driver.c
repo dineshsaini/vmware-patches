@@ -38,6 +38,7 @@
 #include "compat_sock.h"
 #include <linux/kdev_t.h>
 #include <linux/mutex.h>
+#include "compat_compiler.h"
 
 #define __KERNEL_SYSCALLS__
 #include <asm/io.h>

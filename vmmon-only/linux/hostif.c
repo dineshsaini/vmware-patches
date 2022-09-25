@@ -1,5 +1,5 @@
 /*********************************************************
- * Copyright (C) 1998-2020 VMware, Inc. All rights reserved.
+ * Copyright (C) 1998-2022 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,7 +28,6 @@
 /* Must come before any kernel header file --hpreg */
 #include "driver-config.h"
 
-/* Must come before vmware.h --hpreg */
 #include <linux/binfmts.h>
 #include <linux/delay.h>
 #include <linux/file.h>
@@ -48,6 +47,7 @@
 #include <asm/io.h>
 #include <asm/page.h>
 #include <asm/uaccess.h>
+#include <asm/irq_vectors.h>
 #include <linux/capability.h>
 #include <linux/kthread.h>
 #include <linux/wait.h>
@@ -55,9 +55,7 @@
 #include <linux/signal.h>
 #include <linux/taskstats_kern.h> // For linux/sched/signal.h without version check
 
-#include "vmware.h"
 #include "x86apic.h"
-#include "vm_asm.h"
 #include "modulecall.h"
 #include "driver.h"
 #include "memtrack.h"
@@ -73,12 +71,20 @@
 #include "vcpuid.h"
 #include "x86svm.h"
 #include "crosspage.h"
+#include "cpu_defs.h"
 
 #include "pgtbl.h"
 #include "versioned_atomic.h"
 
 #if !defined(CONFIG_HIGH_RES_TIMERS)
 #error CONFIG_HIGH_RES_TIMERS required for acceptable performance
+#endif
+
+/* task's state is read-once rather than volatile from 5.14-rc2. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0) || defined(get_current_state)
+#define get_task_state(task) READ_ONCE((task)->__state)
+#else
+#define get_task_state(task) ((task)->state)
 #endif
 
 /*
@@ -474,7 +480,7 @@ HostIF_WakeUpYielders(VMDriver *vm,     // IN:
       ASSERT(vcpuid < vm->numVCPUs);
       t = vm->vmhost->vcpuSemaTask[vcpuid];
       VCPUSet_Remove(&req, vcpuid);
-      if (t && (t->__state & TASK_INTERRUPTIBLE)) {
+      if (t && (get_task_state(t) & TASK_INTERRUPTIBLE)) {
          wake_up_process(t);
       }
    }
@@ -1679,11 +1685,11 @@ HostIF_EstimateLockedPageLimit(const VMDriver* vm,                // IN
     * since at least 2.6.0.
     */
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) || defined(RHEL84_BACKPORTS)
+   PageCnt totalPhysicalPages = totalram_pages();
+#else
    extern unsigned long totalram_pages;
    PageCnt totalPhysicalPages = totalram_pages;
-#else
-   PageCnt totalPhysicalPages = totalram_pages();
 #endif
    /*
     * Use the memory information linux exports as of late for a more
@@ -1700,28 +1706,28 @@ HostIF_EstimateLockedPageLimit(const VMDriver* vm,                // IN
    PageCnt lockedPages = hugePages + reservedPages;
    PageCnt anonPages;
 
-   /* global_page_state is global_zone_page_state in 4.14. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0) || defined(RHEL85_BACKPORTS)
+   lockedPages += global_node_page_state(NR_PAGETABLE);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
    lockedPages += global_zone_page_state(NR_PAGETABLE);
 #else
    lockedPages += global_page_state(NR_PAGETABLE);
 #endif
-   /* NR_SLAB_* moved from zone to node in 4.13. */
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) || defined(RHEL84_BACKPORTS)
    lockedPages += global_node_page_state_pages(NR_SLAB_UNRECLAIMABLE_B);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
    lockedPages += global_node_page_state(NR_SLAB_UNRECLAIMABLE);
 #else
    lockedPages += global_page_state(NR_SLAB_UNRECLAIMABLE);
 #endif
-   /* NR_UNEVICTABLE moved from global to node in 4.8. */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
    lockedPages += global_node_page_state(NR_UNEVICTABLE);
 #else
    lockedPages += global_page_state(NR_UNEVICTABLE);
 #endif
-   /* NR_ANON_MAPPED moved & changed name in 4.8. */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
    anonPages = global_node_page_state(NR_ANON_MAPPED);
 #else
@@ -1855,7 +1861,7 @@ HostIFReadUptimeWork(unsigned long *j)  // OUT: current jiffies
 {
    uint64 monotime, uptime, upBase, monoBase;
    int64 diff;
-   uint32 version;
+   VersionedAtomicCookie version;
    unsigned long jifs, jifBase;
    unsigned int attempts = 0;
 
@@ -2351,21 +2357,18 @@ isVAReadable(VA r)  // IN:
    int ret;
 
    r = APICR_TO_ADDR(r, APICR_VERSION);
-#ifdef HAVE_GET_KERNEL_NOFAULT
+#if defined(HAVE_GET_KERNEL_NOFAULT) || defined(__get_kernel_nofault) || \
+    (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
    ret = get_kernel_nofault(dummy, (void *)r);
 #else
    {
-#ifdef set_fs
    mm_segment_t old_fs;
 
    old_fs = get_fs();
    set_fs(KERNEL_DS);
-#endif
 
    ret = HostIF_CopyFromUser(&dummy, r, sizeof dummy);
-#ifdef set_fs
    set_fs(old_fs);
-#endif
    }
 #endif
    return ret == 0;
@@ -2570,14 +2573,14 @@ HostIF_SemaphoreWait(VMDriver *vm,   // IN:
    }
 
    poll_initwait(&table);
-   current->__state = TASK_INTERRUPTIBLE;
+   __set_current_state(TASK_INTERRUPTIBLE);
    mask = file->f_op->poll(file, &table.pt);
    if (!(mask & (POLLIN | POLLERR | POLLHUP))) {
       vm->vmhost->vcpuSemaTask[vcpuid] = current;
       schedule_timeout(timeoutms * HZ / 1000);  // convert to Hz
       vm->vmhost->vcpuSemaTask[vcpuid] = NULL;
    }
-   current->__state = TASK_RUNNING;
+   __set_current_state(TASK_RUNNING);
    poll_freewait(&table);
 
    /*
@@ -2659,7 +2662,7 @@ HostIF_SemaphoreForceWakeup(VMDriver *vm,       // IN:
        */
       struct task_struct *t =
          (struct task_struct *)xchg(&vm->vmhost->vcpuSemaTask[vcpuid], NULL);
-      if (t && (t->__state & TASK_INTERRUPTIBLE)) {
+      if (t && (get_task_state(t) & TASK_INTERRUPTIBLE)) {
          wake_up_process(t);
       }
    } ROF_EACH_VCPU_IN_SET_WITH_MAX();

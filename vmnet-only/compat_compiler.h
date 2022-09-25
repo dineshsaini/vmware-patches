@@ -13,4 +13,3 @@
 #endif /* fallthrough */
 
 #endif /* __COMPAT_COMPILER_H__ */
-

@@ -66,7 +66,7 @@
 #endif
 
 #if LOGLEVEL >= 4
-static struct timeval vnetTime;
+static u64 vnetTime;
 #endif
 
 typedef struct VNetBridge VNetBridge;
@@ -687,13 +687,13 @@ VNetBridgeReceiveFromVNet(VNetJack        *this, // IN: jack
          /*
           * We used to cli() before calling netif_rx() here. It was probably
           * unneeded (as we never did it in netif.c, and the code worked). In
-          * any case, now that we are using netif_rx(), we should certainly
-          * not do it, or netif_rx() will deadlock on the cli() lock --hpreg
+          * any case, now that we are using netif_rx_ni(), we should certainly
+          * not do it, or netif_rx_ni() will deadlock on the cli() lock --hpreg
           */
 
-	 netif_rx(clone);
+	 compat_netif_rx_ni(clone);
 #	 if LOGLEVEL >= 4
-	 do_gettimeofday(&vnetTime);
+	 vnetTime = ktime_get_ns();
 #	 endif
       }
    }
@@ -809,10 +809,14 @@ static Bool
 VNetBridgeIsDeviceWireless(struct net_device *dev) //IN: sock
 {
 #if defined(CONFIG_WIRELESS_EXT)
-   return dev->ieee80211_ptr != NULL || dev->wireless_handlers != NULL;
-#else
-   return dev->ieee80211_ptr != NULL;
+   if (dev->wireless_handlers)
+      return true;
 #endif
+#if IS_ENABLED(CONFIG_CFG80211)
+   if (dev->ieee80211_ptr)
+      return true;
+#endif
+   return false;
 }
 
 
@@ -1490,12 +1494,11 @@ VNetBridgeReceiveFromDev(struct sk_buff *skb,         // IN: packet to receive
 
 #  if LOGLEVEL >= 4
    {
-      struct timeval now;
-      do_gettimeofday(&now);
+      u64 now;
+
+      now = ktime_get_ns();
       LOG(3, (KERN_DEBUG "bridge-%s: time %d\n",
-	      bridge->name,
-	      (int)((now.tv_sec * 1000000 + now.tv_usec)
-                    - (vnetTime.tv_sec * 1000000 + vnetTime.tv_usec))));
+	      bridge->name, (int)((now - vnetTime) / NSEC_PER_USEC)));
    }
 #  endif
 

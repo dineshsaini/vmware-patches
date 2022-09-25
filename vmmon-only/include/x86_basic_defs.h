@@ -1,5 +1,5 @@
 /*********************************************************
- * Copyright (C) 2006-2020 VMware, Inc. All rights reserved.
+ * Copyright (C) 2006-2021 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -34,6 +34,8 @@
 #define INCLUDE_ALLOW_DISTRIBUTE
 #define INCLUDE_ALLOW_VMCORE
 #include "includeCheck.h"
+
+#include <asm/processor-flags.h>
 
 #define X86_MAX_INSTR_LEN  15   /* Max byte length of an x86 instruction. */
 
@@ -75,7 +77,9 @@
 #define CR3_PDB_MASK   0xfffff000
 #define CR3_IGNORE     0xFFF
 #define PAE_CR3_IGNORE 0x1F
+#ifndef CR3_PCID_MASK
 #define CR3_PCID_MASK  0xFFF
+#endif
 #define CR3_NO_FLUSH   (1ULL << 63)
 
 #define CR4_VME        0x00000001
@@ -100,7 +104,8 @@
 #define CR4_SMAP       0x00200000
 #define CR4_PKE        0x00400000
 #define CR4_CET        0x00800000
-#define CR4_RESERVED   CONST64U(0xffffffffff889000)
+#define CR4_PKS        0x01000000
+#define CR4_RESERVED   CONST64U(0xfffffffffe089000)
 #define CR8_RESERVED   CONST64U(0xfffffffffffffff0)
 
 /*

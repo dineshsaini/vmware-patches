@@ -1,5 +1,5 @@
 /*********************************************************
- * Copyright (C) 1998,2005-2012,2014-2020 VMware, Inc. All rights reserved.
+ * Copyright (C) 1998,2005-2012,2014-2021 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -35,6 +35,8 @@
 #endif
 #endif
 
+#include <linux/pci_ids.h>
+
 /* LSILogic 53C1030 Parallel SCSI controller
  * LSILogic SAS1068 SAS controller
  */
@@ -43,6 +45,7 @@
 #define PCI_DEVICE_ID_LSISAS1068        0x0054
 
 /* Our own PCI IDs
+ *    VMware SBX (Sandbox device for graphics driver VM)
  *    VMware SVGA II (Unified VGA)
  *    VMware SVGA (PCI Accelerator)
  *    VMware vmxnet (Idealized NIC)
@@ -53,7 +56,12 @@
  *    VMware HD Audio codec
  *    VMware HD Audio controller
  */
+#ifndef PCI_VENDOR_ID_VMWARE
 #define PCI_VENDOR_ID_VMWARE                    0x15AD
+#endif
+
+#define PCI_DEVICE_ID_VMWARE_SBX                0x0420
+#define PCI_DEVICE_ID_VMWARE_SVGA_EFI           0x0407
 #define PCI_DEVICE_ID_VMWARE_SVGA3              0x0406
 #define PCI_DEVICE_ID_VMWARE_SVGA2              0x0405
 #define PCI_DEVICE_ID_VMWARE_SVGA               0x0710
@@ -71,7 +79,11 @@
 #define PCI_DEVICE_ID_VMWARE_1394               0x0780
 #define PCI_DEVICE_ID_VMWARE_BRIDGE             0x0790
 #define PCI_DEVICE_ID_VMWARE_ROOTPORT           0x07A0
+
+#ifndef PCI_DEVICE_ID_VMWARE_VMXNET3
 #define PCI_DEVICE_ID_VMWARE_VMXNET3            0x07B0
+#endif
+
 #define PCI_DEVICE_ID_VMWARE_PVSCSI             0x07C0
 #define PCI_DEVICE_ID_VMWARE_82574              0x07D0
 #define PCI_DEVICE_ID_VMWARE_AHCI               0x07E0
@@ -112,6 +124,12 @@
 
 #define PCI_DEVICE_ID_VMWARE_VRDMA      0x0820
 #define PCI_DEVICE_ID_VMWARE_VTPM       0x0830
+
+/*
+ * VMware Device Virtualization Extension (DVX) devices
+ */
+#define PCI_DEVICE_ID_VMWARE_DVX_SAMPLE 0x0840
+#define PCI_DEVICE_ID_VMWARE_DVX_TEST   0x0841
 
 /*
  * VMware Virtual Device Test Infrastructure (VDTI) devices
@@ -167,7 +185,9 @@
 /*
  * Intel Volume Management Device (VMD)
  */
-#define PCI_DEVICE_ID_INTEL_VMD_V1           0x201d
+#define PCI_DEVICE_ID_INTEL_VMD_GEN1           0x201d
+#define PCI_DEVICE_ID_INTEL_VMD_GEN2           0x28c0
+#define PCI_DEVICE_ID_INTEL_VMD_GEN3           0x476F
 
 /*
  * Intel Quickassist (QAT) devices.
@@ -328,10 +348,10 @@
 #define MAX_FLOPPY_DRIVES      2
 
 /************* PCI Passthrough implementation limits ********************/
-#define MAX_PCI_PASSTHRU_DEVICES 16
+#define MAX_PCI_PASSTHRU_DEVICES 32
 
 /************* Test device implementation limits ********************/
-#define MAX_PCI_TEST_DEVICES 16
+#define MAX_PCI_TEST_DEVICES 32
 
 /************* VDTI PCI Device implementation limits ********************/
 #define MAX_VDTI_PCI_DEVICES 16
@@ -351,6 +371,9 @@
 
 /************* PrecisionClock implementation limits ********************/
 #define MAX_PRECISIONCLOCK_DEVICES 1
+
+/************* DeviceGroup implementation limits ********************/
+#define MAX_DEVICE_GROUP_DEVICES 4
 
 /************* Strings for Host USB Driver *******************************/
 

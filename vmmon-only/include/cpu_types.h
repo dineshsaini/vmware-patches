@@ -16,25 +16,26 @@
  *
  *********************************************************/
 
-#ifndef _CROSSPAGE_H_
-#define _CROSSPAGE_H_
+/*
+ * cpu_types.h --
+ *
+ *      Type definitions for the target architecture.
+ */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#if !defined(_CPU_TYPES_H_)
+#define _CPU_TYPES_H_
 
-struct VMCrossPageData;
+#include "vm_basic_types.h"
+#include "vm_basic_defs.h"
 
-extern void HostToVmm(struct VMCrossPageData *crosspageWIN, void *unused1,
-                      void *unused2, struct VMCrossPageData *crosspageSYSV);
-extern void CrossPageInitSwitchIDTs(struct VMCrossPageData *cpData);
+typedef uint8 Instruction;
 
-extern void CrossPage_CodePage(void);
-extern void CrossPage_CodeEnd(void);
-extern const VMCrossPageData cpDataTemplate;
+/*
+ * Page
+ */
+typedef char PageArray[PAGE_SIZE];
 
-#ifdef __cplusplus
-}
-#endif
+
+#include "cpu_types_arch.h"
 
 #endif
