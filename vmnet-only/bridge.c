@@ -43,6 +43,7 @@
 #include <linux/tcp.h>
 #include <linux/if_arp.h>
 #include <net/tcp.h>
+#include <net/gso.h>
 #include <net/ipv6.h>
 
 #ifdef CONFIG_NET_RADIO
