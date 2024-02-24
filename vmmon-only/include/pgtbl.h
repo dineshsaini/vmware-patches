@@ -91,7 +91,7 @@ PgtblVa2MPNLocked(struct mm_struct *mm, // IN: Mm structure of a process
          } else {
             pte_t *pte;
 
-            pte = pte_offset_map(pmd, addr);
+            pte = pte_offset_kernel(pmd, addr);
             if (pte_present(*pte) == 0) {
                pte_unmap(pte);
                return INVALID_MPN;
