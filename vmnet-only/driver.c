@@ -52,18 +52,6 @@
 #include "vmnetInt.h"
 
 /*
- * Initialization and creation routines from other files.
- * Putting them here reduces the need for so many header files.
- */
-
-extern int VNetUserIf_Create(VNetPort **ret);
-extern int VNetNetIf_Create(char *devName, VNetPort **ret, int hubNum);
-extern int VNetBridge_Create(char *devName, uint32 flags, VNetJack *hubJack,
-                             VNetPort **ret);
-extern int VNetUserListener_Create(uint32 classMask, VNetJack *hubJack, VNetPort **ret);
-
-
-/*
  *  Structure for cycle detection of host interfaces.  This
  *  struct is only used by VNetCycleDetectIf().
  */
@@ -280,7 +268,7 @@ VNetRemovePortFromList(const VNetPort *port) // IN: port to remove from list
 /*
  *----------------------------------------------------------------------
  *
- * init_module --
+ * vmnet_init_module --
  *
  *      linux module entry point. Called by /sbin/insmod command.
  *      Initializes module and Registers this driver for a
@@ -296,8 +284,8 @@ VNetRemovePortFromList(const VNetPort *port) // IN: port to remove from list
  *----------------------------------------------------------------------
  */
 
-int
-init_module(void)
+static int
+vmnet_init_module(void)
 {
    int retval;
 
@@ -359,7 +347,7 @@ err_proto:
 /*
  *----------------------------------------------------------------------
  *
- * cleanup_module --
+ * vmnet_cleanup_module --
  *
  *      Called by /sbin/rmmod.  Unregisters this driver for a
  *      vnet major #, and deinitializes the modules.  The 64-bit
@@ -375,8 +363,8 @@ err_proto:
  *----------------------------------------------------------------------
  */
 
-void
-cleanup_module(void)
+static void
+vmnet_cleanup_module(void)
 {
    unregister_chrdev(VNET_MAJOR_NUMBER, "vmnet");
    VNetProtoUnregister();
@@ -1702,3 +1690,5 @@ MODULE_LICENSE("GPL v2");
  * by default (i.e., neither mkinitrd nor modprobe will accept it).
  */
 MODULE_INFO(supported, "external");
+module_init(vmnet_init_module);
+module_exit(vmnet_cleanup_module);
